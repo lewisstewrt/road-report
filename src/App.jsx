@@ -5,17 +5,51 @@ function App(){
   const [reports, setReports] = useState([])
   const [category, setCategory] = useState("pothole")
 
+  //change one report by its id without changing others
+  function updateReport(id, changes){
+    setReports(prev => prev.map(r =>
+      r.id === id ? {...r, ...changes} : r
+    ))
+  }
+
   function handleAdd(){
     if (!description.trim()) return // dont save an empty report
 
+    //Create report straight away marked as "locating"
     const newReport = {
       id: crypto.randomUUID(),
       category: category, 
       description: description,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      status: "locating"
     }
     setReports([...reports, newReport])
     setDescription("")
+    
+    //check if browser can do location
+    if (!("geolocation" in navigator)){
+      setReports(prev => prev.map(r =>
+        r.id === newReport.id ? {...r, status: "No location support"} : r
+      ))
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        updateReport(newReport.id, {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          status: "located"
+        })
+
+      },
+      (error) => {
+        //Failure, permission denied, unavailable or timed out
+        console.log("Location error:", error.message)
+        updateReport(newReport.id, {status: "Location failed"})
+      },
+      {enableHighAccuracy: true, timeout: 10000}
+    )
   }
   return(
     <div>
@@ -31,7 +65,8 @@ function App(){
 
       <ul>
         {reports.map((report) => (
-          <li key={report.id}>{report.category}: {report.description}</li>
+          <li key={report.id}>{report.category}: {report.description} ({report.status})</li>
+
         ))}
       </ul>
     </div>
