@@ -7,6 +7,8 @@ function App(){
   return saved ? JSON.parse(saved) : []
 })
   const [category, setCategory] = useState("pothole")
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState("")
   
   useEffect(() =>{
     localStorage.setItem("reports", JSON.stringify(reports))
@@ -78,6 +80,9 @@ function App(){
           <li 
           key={report.id}>{report.category}: {report.description} ({report.status}) 
           <button onClick={() => deleteReport(report.id)}>Delete</button>
+          <button 
+          onClick={() => {setEditingId(report.id); setEditText(report.description)}}
+            >Edit</button>
           </li>
 
         ))}
