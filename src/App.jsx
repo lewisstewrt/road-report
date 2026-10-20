@@ -19,6 +19,10 @@ function App(){
     ))
   }
 
+  function deleteReport(id){
+      setReports(prev => prev.filter(r => r.id !== id))
+  }
+
   function handleAdd(){
     if (!description.trim()) return // dont save an empty report
 
@@ -48,7 +52,6 @@ function App(){
           lng: position.coords.longitude,
           status: "located"
         })
-
       },
       (error) => {
         //Failure, permission denied, unavailable or timed out
@@ -72,7 +75,10 @@ function App(){
 
       <ul>
         {reports.map((report) => (
-          <li key={report.id}>{report.category}: {report.description} ({report.status})</li>
+          <li 
+          key={report.id}>{report.category}: {report.description} ({report.status}) 
+          <button onClick={() => deleteReport(report.id)}>Delete</button>
+          </li>
 
         ))}
       </ul>
