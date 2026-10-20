@@ -1,10 +1,17 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 function App(){
   const [description, setDescription] = useState("")
-  const [reports, setReports] = useState([])
+  const [reports, setReports] = useState(() => {
+  const saved = localStorage.getItem("reports")
+  return saved ? JSON.parse(saved) : []
+})
   const [category, setCategory] = useState("pothole")
-
+  
+  useEffect(() =>{
+    localStorage.setItem("reports", JSON.stringify(reports))
+  }, [reports])
+  
   //change one report by its id without changing others
   function updateReport(id, changes){
     setReports(prev => prev.map(r =>
