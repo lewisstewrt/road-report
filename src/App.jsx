@@ -1,55 +1,53 @@
-import { useState, useEffect } from "react"
+import { useState, useRef, useCallback} from "react"
+import db from "./db"
+import { useLiveQuery } from "dexie-react-hooks"
+import Webcam from "react-webcam"
 
 function App(){
   const [description, setDescription] = useState("")
-  const [reports, setReports] = useState(() => {
-  const saved = localStorage.getItem("reports")
-  return saved ? JSON.parse(saved) : []
-})
+  const reports = useLiveQuery(() => db.reports.orderBy("createdAt").reverse().toArray()) ?? []
+
+
   const [category, setCategory] = useState("pothole")
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState("")
+  const [photo, setPhoto] = useState(null)
   
-  useEffect(() =>{
-    localStorage.setItem("reports", JSON.stringify(reports))
-  }, [reports])
-  
+  function capture(){
+    const image = webcamRef.current.getScreenshot() 
+    setPhoto(image)
+  }
   //change one report by its id without changing others
   function updateReport(id, changes){
-    setReports(prev => prev.map(r =>
-      r.id === id ? {...r, ...changes} : r
-    ))
+    db.reports.update(id, changes)
   }
 
   function deleteReport(id){
-      setReports(prev => prev.filter(r => r.id !== id))
+      db.reports.delete(id)
   }
 
-  function handleAdd(){
+ async function handleAdd(){
     if (!description.trim()) return // dont save an empty report
 
     //Create report straight away marked as "locating"
     const newReport = {
-      id: crypto.randomUUID(),
       category: category, 
       description: description,
       createdAt: new Date().toISOString(),
       status: "locating"
     }
-    setReports([...reports, newReport])
+    const id = await db.reports.add(newReport)
     setDescription("")
     
     //check if browser can do location
     if (!("geolocation" in navigator)){
-      setReports(prev => prev.map(r =>
-        r.id === newReport.id ? {...r, status: "No location support"} : r
-      ))
+      updateReport(id, {status: "No location support"})
       return
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        updateReport(newReport.id, {
+        updateReport(id, {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
           status: "located"
@@ -58,13 +56,20 @@ function App(){
       (error) => {
         //Failure, permission denied, unavailable or timed out
         console.log("Location error:", error.message)
-        updateReport(newReport.id, {status: "Location failed"})
+        updateReport(id, {status: "Location failed"})
       },
       {enableHighAccuracy: true, timeout: 10000}
     )
   }
+  const webcamRef = useRef(null)
+  const videoConstraints={
+    width: 1280,
+    height: 720,
+    facingMode: "environment"
+  }
   return(
     <div>
+      <Webcam videoConstraints={videoConstraints} ref={webcamRef}></Webcam>
       <select value = {category} onChange={(e) => setCategory(e.target.value)}>
         <option value="pothole">Pothole</option>
         <option value="damaged sign">Damaged sign</option>
@@ -74,6 +79,8 @@ function App(){
       </select>
       <textarea value = {description} onChange={(e) => setDescription(e.target.value)} />
       <button onClick={handleAdd}>Submit Report</button>
+      <button onClick={capture}>Take Photo</button>
+      {photo && <img src={photo} alt="Captured" width="300" />}
 
       <ul>
         {reports.map((report) => (
