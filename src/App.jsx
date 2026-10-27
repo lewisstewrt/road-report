@@ -25,6 +25,10 @@ function App(){
   function deleteReport(id){
       db.reports.delete(id)
   }
+  function saveEdit(){
+    updateReport(editingId, {description: editText})
+    setEditingId(null)
+    }
 
  async function handleAdd(){
     if (!description.trim()) return // dont save an empty report
@@ -87,7 +91,8 @@ function App(){
       <ul>
         {reports.map((report) => (
           <li 
-          key={report.id}>{report.category}: {report.description} ({report.status}) 
+          key={report.id}>{report.category}: {report.description} ({report.status})
+          {report.photo && <img src={report.photo} alt="Report" width="150" />}
           <button onClick={() => deleteReport(report.id)}>Delete</button>
           <button 
           onClick={() => {setEditingId(report.id); setEditText(report.description)}}
