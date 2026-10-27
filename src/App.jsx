@@ -34,9 +34,11 @@ function App(){
       category: category, 
       description: description,
       createdAt: new Date().toISOString(),
-      status: "locating"
+      status: "locating",
+      photo: photo
     }
     const id = await db.reports.add(newReport)
+    setPhoto(null)
     setDescription("")
     
     //check if browser can do location
