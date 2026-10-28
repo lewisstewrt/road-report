@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback} from "react"
+import { useState, useRef, useCallback } from "react"
 import db from "./db"
 import { useLiveQuery } from "dexie-react-hooks"
 import Webcam from "react-webcam"
 
-function App(){
+function App() {
   const [description, setDescription] = useState("")
   const reports = useLiveQuery(() => db.reports.orderBy("createdAt").reverse().toArray()) ?? []
 
@@ -12,30 +12,30 @@ function App(){
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState("")
   const [photo, setPhoto] = useState(null)
-  
-  function capture(){
-    const image = webcamRef.current.getScreenshot() 
+
+  function capture() {
+    const image = webcamRef.current.getScreenshot()
     setPhoto(image)
   }
   //change one report by its id without changing others
-  function updateReport(id, changes){
+  function updateReport(id, changes) {
     db.reports.update(id, changes)
   }
 
-  function deleteReport(id){
-      db.reports.delete(id)
+  function deleteReport(id) {
+    db.reports.delete(id)
   }
-  function saveEdit(){
-    updateReport(editingId, {description: editText})
+  function saveEdit() {
+    updateReport(editingId, { description: editText })
     setEditingId(null)
-    }
+  }
 
- async function handleAdd(){
+  async function handleAdd() {
     if (!description.trim()) return // dont save an empty report
 
     //Create report straight away marked as "locating"
     const newReport = {
-      category: category, 
+      category: category,
       description: description,
       createdAt: new Date().toISOString(),
       status: "locating",
@@ -44,10 +44,10 @@ function App(){
     const id = await db.reports.add(newReport)
     setPhoto(null)
     setDescription("")
-    
+
     //check if browser can do location
-    if (!("geolocation" in navigator)){
-      updateReport(id, {status: "No location support"})
+    if (!("geolocation" in navigator)) {
+      updateReport(id, { status: "No location support" })
       return
     }
 
@@ -62,41 +62,49 @@ function App(){
       (error) => {
         //Failure, permission denied, unavailable or timed out
         console.log("Location error:", error.message)
-        updateReport(id, {status: "Location failed"})
+        updateReport(id, { status: "Location failed" })
       },
-      {enableHighAccuracy: true, timeout: 10000}
+      { enableHighAccuracy: true, timeout: 10000 }
     )
   }
   const webcamRef = useRef(null)
-  const videoConstraints={
+  const videoConstraints = {
     width: 1280,
     height: 720,
     facingMode: "environment"
   }
-  return(
+  return (
     <div>
       <Webcam videoConstraints={videoConstraints} ref={webcamRef}></Webcam>
-      <select value = {category} onChange={(e) => setCategory(e.target.value)}>
+      <select value={category} onChange={(e) => setCategory(e.target.value)}>
         <option value="pothole">Pothole</option>
         <option value="damaged sign">Damaged sign</option>
         <option value="broken streetlight">Broken streetlight</option>
         <option value="flooding">Flooding</option>
         <option value="other">Other</option>
       </select>
-      <textarea value = {description} onChange={(e) => setDescription(e.target.value)} />
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
       <button onClick={handleAdd}>Submit Report</button>
       <button onClick={capture}>Take Photo</button>
       {photo && <img src={photo} alt="Captured" width="300" />}
 
       <ul>
         {reports.map((report) => (
-          <li 
-          key={report.id}>{report.category}: {report.description} ({report.status})
-          {report.photo && <img src={report.photo} alt="Report" width="150" />}
-          <button onClick={() => deleteReport(report.id)}>Delete</button>
-          <button 
-          onClick={() => {setEditingId(report.id); setEditText(report.description)}}
-            >Edit</button>
+          <li key={report.id}>
+            {editingId === report.id ? (
+              <>
+                <textarea value={editText} onChange={(e) => setEditText(e.target.value)} />
+                <button onClick={saveEdit}>Save</button>
+                <button onClick={() => setEditingId(null)}>Cancel</button>
+              </>
+            ) : (
+              <>
+                {report.category}: {report.description} ({report.status})
+                {report.photo && <img src={report.photo} alt="Report" width="150" />}
+                <button onClick={() => deleteReport(report.id)}>Delete</button>
+                <button onClick={() => { setEditingId(report.id); setEditText(report.description) }}>Edit</button>
+              </>
+            )}
           </li>
 
         ))}
